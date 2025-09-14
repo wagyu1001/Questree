@@ -6,7 +6,8 @@ import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-
+import { GoogleAuth } from 'google-auth-library';
+import { CloudBillingClient } from '@google-cloud/billing';
 
 dotenv.config();
 
@@ -56,16 +57,16 @@ if (process.env.NODE_ENV === 'production') {
 
 // Rate limiting 설정
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15분
-  max: 100, // 최대 100 요청
+  windowMs: 15 * 60 * 1000, 
+  max: 100, 
   message: { error: '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 const apiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1분
-  max: 10, // 최대 10 요청
+  windowMs: 1 * 60 * 1000, 
+  max: 10, 
   message: { error: 'API 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -77,26 +78,46 @@ app.use('/api/', generalLimiter);
 // Gemini AI 클라이언트 초기화
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// 언어 감지 함수 (한국어, 영어만 지원)
+// Google Cloud Billing 클라이언트 초기화
+if (!process.env.GOOGLE_CREDENTIALS_B64) {
+  throw new Error('환경 변수 GOOGLE_CREDENTIALS_B64가 필요합니다.');
+}
+
+const serviceAccount = JSON.parse(
+  Buffer.from(process.env.GOOGLE_CREDENTIALS_B64, 'base64').toString('utf8')
+);
+
+const auth = new GoogleAuth({
+  credentials: serviceAccount,
+  scopes: ['https://www.googleapis.com/auth/cloud-platform']
+});
+
+const billingClient = new CloudBillingClient({ auth });
+
+// 🔍 Billing 상태 확인 함수
+async function checkCredits(billingAccountId) {
+  try {
+    const [info] = await billingClient.getBillingAccount({
+      name: `billingAccounts/${billingAccountId}`
+    });
+
+    // info.open === true → billing 계정이 열려 있음
+    return info.open;
+  } catch (err) {
+    console.error('Billing API 오류:', err);
+    return false;
+  }
+}
+
+// 언어 감지 함수
 function detectLanguage(text) {
   if (!text || text.trim().length === 0) return 'ko';
-  
-  // 한국어 패턴 (한글 문자)
   const koreanPattern = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/;
-  
-  // 영어 패턴 (라틴 문자)
   const englishPattern = /[a-zA-Z]/;
-  
   const hasKorean = koreanPattern.test(text);
   const hasEnglish = englishPattern.test(text);
-  
-  // 한국어가 포함되어 있으면 한국어로 판단
   if (hasKorean) return 'ko';
-  
-  // 영어가 포함되어 있으면 영어로 판단
   if (hasEnglish) return 'en';
-  
-  // 기본값은 한국어
   return 'ko';
 }
 
@@ -114,7 +135,6 @@ function generatePrompt(prompt, selectedText, images, language = 'ko') {
       return `Please answer the following question in a clear and helpful manner. Keep your response within ${lengthLimit} characters.\n\nQuestion: ${prompt}`;
     }
   } else {
-    // 한국어
     if (selectedText) {
       return `${selectedText}에 관한 다음 질문에 대해 명확하고 도움이 되는 답변을 해주세요. 답변은 ${lengthLimit}자 이내로 작성해주세요.\n\n질문: ${prompt}`;
     } else if (isImageQuery) {
@@ -128,77 +148,23 @@ function generatePrompt(prompt, selectedText, images, language = 'ko') {
 // 입력 검증 미들웨어
 const validateInput = (req, res, next) => {
   const { prompt, images } = req.body;
-  
-  // 텍스트나 이미지 중 하나는 있어야 함
   if ((!prompt || prompt.trim().length === 0) && (!images || images.length === 0)) {
     return res.status(400).json({ error: '질문 텍스트나 이미지 중 하나는 입력해주세요.' });
   }
-  
-  // 텍스트가 있는 경우 검증
   if (prompt && typeof prompt !== 'string') {
     return res.status(400).json({ error: '유효한 프롬프트가 필요합니다.' });
   }
-  
-  // 텍스트가 있는 경우 길이 검증
   if (prompt && prompt.trim().length > 0) {
     if (prompt.length < 3) {
       return res.status(400).json({ error: '프롬프트는 최소 3자 이상이어야 합니다.' });
     }
-    
     if (prompt.length > 2000) {
       return res.status(400).json({ error: '프롬프트는 최대 2,000자까지 입력 가능합니다.' });
     }
-    
-    // 줄 수 검증
     const lines = prompt.split('\n');
     if (lines.length > 20) {
       return res.status(400).json({ error: '프롬프트는 최대 20줄까지 입력 가능합니다.' });
     }
-  }
-  
-  // 텍스트가 있는 경우 악의적인 패턴 검사
-  if (prompt && prompt.trim().length > 0) {
-    const dangerousPatterns = [
-      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-      /javascript:/gi,
-      /on\w+\s*=/gi,
-      /<iframe\b[^>]*>/gi,
-      /<object\b[^>]*>/gi,
-      /<embed\b[^>]*>/gi,
-      /<link\b[^>]*>/gi,
-      /<meta\b[^>]*>/gi,
-      /data:text\/html/gi,
-      /vbscript:/gi,
-      /<form\b[^>]*>/gi,
-      /<input\b[^>]*>/gi,
-      /<button\b[^>]*>/gi,
-      /<select\b[^>]*>/gi,
-      /<textarea\b[^>]*>/gi
-    ];
-    
-    for (const pattern of dangerousPatterns) {
-      if (pattern.test(prompt)) {
-        console.warn('Potentially malicious input detected:', { 
-          ip: req.ip, 
-          userAgent: req.get('User-Agent'),
-          pattern: pattern.toString(),
-          prompt: prompt.substring(0, 100) + '...'
-        });
-        return res.status(400).json({ error: '안전하지 않은 내용이 포함되어 있습니다.' });
-      }
-    }
-    
-    // HTML 태그 제거
-    const sanitizedPrompt = prompt
-      .replace(/<[^>]*>/g, '') // 모든 HTML 태그 제거
-      .replace(/&[^;]+;/g, '') // HTML 엔티티 제거
-      .trim();
-    
-    if (sanitizedPrompt.length < 3) {
-      return res.status(400).json({ error: '유효한 텍스트를 입력해주세요.' });
-    }
-    
-    req.body.prompt = sanitizedPrompt;
   }
   next();
 };
@@ -206,6 +172,15 @@ const validateInput = (req, res, next) => {
 // 메인 API 엔드포인트
 app.post('/api/ask', validateInput, async (req, res) => {
   try {
+    const billingAccountId = process.env.BILLING_ACCOUNT_ID;
+    const hasCredit = await checkCredits(billingAccountId);
+
+    if (!hasCredit) {
+      return res.status(402).json({ 
+        error: '무료 크레딧이 모두 소진되었거나 결제 계정이 비활성화되었습니다. Gemini 호출이 차단됩니다.' 
+      });
+    }
+
     const { prompt, images, selectedText } = req.body;
     
     if (!process.env.GEMINI_API_KEY) {
@@ -214,19 +189,15 @@ app.post('/api/ask', validateInput, async (req, res) => {
       });
     }
 
-    // Gemini 모델 초기화
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    
-    // 언어 감지 및 프롬프트 생성
     const detectedLanguage = detectLanguage(prompt || '');
     const fullPrompt = generatePrompt(prompt, selectedText, images, detectedLanguage);
-    
-    // 이미지가 있는 경우 처리
+
     let content;
     if (images && images.length > 0) {
       const imageParts = images.map(img => ({
         inlineData: {
-          data: img.data.split(',')[1], // Base64 데이터 부분만 추출
+          data: img.data.split(',')[1],
           mimeType: img.type
         }
       }));
@@ -234,8 +205,7 @@ app.post('/api/ask', validateInput, async (req, res) => {
     } else {
       content = fullPrompt;
     }
-    
-    // Gemini API 호출
+
     const result = await model.generateContent(content);
     const response = await result.response;
     const answer = response.text();
@@ -247,8 +217,6 @@ app.post('/api/ask', validateInput, async (req, res) => {
 
   } catch (error) {
     console.error('Gemini API 호출 오류:', error);
-    
-    // 에러 타입에 따른 적절한 응답
     if (error.message.includes('API_KEY')) {
       res.status(500).json({ error: 'API 키가 유효하지 않습니다.' });
     } else if (error.message.includes('QUOTA')) {
@@ -257,25 +225,6 @@ app.post('/api/ask', validateInput, async (req, res) => {
       res.status(500).json({ error: 'AI 응답을 생성하는 중 오류가 발생했습니다.' });
     }
   }
-});
-
-// 추가 보안 헤더
-app.use((req, res, next) => {
-  // X-Frame-Options
-  res.setHeader('X-Frame-Options', 'DENY');
-  // X-Content-Type-Options
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  // Referrer-Policy
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  // Permissions-Policy
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  
-  // 요청 로깅 (보안 모니터링)
-  if (req.method === 'POST' && req.path === '/api/ask') {
-    console.log(`API Request: ${req.method} ${req.path} from ${req.ip} at ${new Date().toISOString()}`);
-  }
-  
-  next();
 });
 
 // 헬스 체크 엔드포인트
@@ -288,29 +237,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 404 핸들러 (API 라우트가 아닌 경우)
-app.use('/api/*', (req, res) => {
-  res.status(404).json({ error: '요청한 API 엔드포인트를 찾을 수 없습니다.' });
-});
-
-// SPA 라우팅을 위한 catch-all 핸들러 (프로덕션 환경)
-if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build/index.html'));
-  });
-}
-
-// 에러 핸들러
-app.use((error, req, res, next) => {
-  console.error('서버 오류:', error);
-  res.status(500).json({ 
-    error: '서버 내부 오류가 발생했습니다.',
-    message: process.env.NODE_ENV === 'development' ? error.message : '서버 오류'
-  });
-});
-
 app.listen(PORT, () => {
   console.log(`🚀 Questree 서버가 포트 ${PORT}에서 실행 중입니다.`);
-  console.log(`📡 API 엔드포인트: http://localhost:${PORT}/api/ask`);
-  console.log(`🏥 헬스 체크: http://localhost:${PORT}/api/health`);
 });

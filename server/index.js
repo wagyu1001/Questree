@@ -139,14 +139,15 @@ function generatePrompt(prompt, selectedText, images, language = 'ko') {
 
   if (language === 'en') {
     if (selectedText) {
-      return `Please provide a comprehensive and detailed answer to the following question about "${selectedText}". 
+      return `You are an expert educator and explainer. Please provide a clear, comprehensive, and well-structured answer to the following question about "${selectedText}".
 
 Your response should:
-- Be thorough and informative
-- Include relevant examples or explanations
-- Provide context and background information when helpful
-- Be well-structured and easy to understand
-- Aim for approximately ${lengthLimit} characters
+- Offer a deep and informative explanation, going beyond surface-level details
+- Include relevant real-world examples, analogies, or use cases where appropriate
+- Provide helpful background and context to aid understanding
+- Be organized with headings, bullet points, or numbered lists for readability
+- Balance clarity with depth (avoid unnecessary complexity while staying insightful)
+- Aim for approximately ${lengthLimit} characters, with enough detail to feel complete but concise
 
 Question: ${prompt}`;
     } else if (isImageQuery) {
@@ -159,15 +160,15 @@ Your response should:
 - Be comprehensive and informative
 - Aim for approximately ${lengthLimit} characters`;
     } else {
-      return `Please provide a comprehensive and detailed answer to the following question.
+      return `You are an expert educator and explainer. Please provide a clear, comprehensive, and well-structured answer to the following question".
 
 Your response should:
-- Be thorough and informative
-- Include relevant examples or explanations
-- Provide context and background information when helpful
-- Be well-structured and easy to understand
-- Cover the topic in depth
-- Aim for approximately ${lengthLimit} characters
+- Offer a deep and informative explanation, going beyond surface-level details
+- Include relevant real-world examples, analogies, or use cases where appropriate
+- Provide helpful background and context to aid understanding
+- Be organized with headings, bullet points, or numbered lists for readability
+- Balance clarity with depth (avoid unnecessary complexity while staying insightful)
+- Aim for approximately ${lengthLimit} characters, with enough detail to feel complete but concise
 
 Question: ${prompt}`;
     }

@@ -409,7 +409,7 @@
     position: fixed;
     top: 120px;
     right: 1rem;
-    width: 350px;
+    width: 420px;
     max-height: calc(100vh - 200px);
     background: white;
     border: 1px solid #e5e7eb;

@@ -20,6 +20,13 @@
   let lastPanX = 0;
   let lastPanY = 0;
   let svgElement: SVGSVGElement;
+  
+  // 터치 이벤트 관련 변수들
+  let isTouching = false;
+  let lastTouchX = 0;
+  let lastTouchY = 0;
+  let touchStartDistance = 0;
+  let touchStartScale = 1;
 
   // 스토어 구독
   $: {
@@ -70,7 +77,7 @@
     updateTransform();
   }
 
-  // 팬 기능
+  // 팬 기능 (마우스)
   function handleMouseDown(event: MouseEvent) {
     if (event.button === 0) {
       isPanning = true;
@@ -95,6 +102,68 @@
     treeContainer.style.cursor = 'grab';
   }
 
+  // 터치 이벤트 핸들러
+  function handleTouchStart(event: TouchEvent) {
+    event.preventDefault();
+    const touches = event.touches;
+    
+    if (touches.length === 1) {
+      // 단일 터치 - 팬
+      isTouching = true;
+      lastTouchX = touches[0].clientX;
+      lastTouchY = touches[0].clientY;
+    } else if (touches.length === 2) {
+      // 두 손가락 터치 - 줌
+      isTouching = true;
+      const touch1 = touches[0];
+      const touch2 = touches[1];
+      const distance = Math.sqrt(
+        Math.pow(touch2.clientX - touch1.clientX, 2) + 
+        Math.pow(touch2.clientY - touch1.clientY, 2)
+      );
+      touchStartDistance = distance;
+      touchStartScale = scale;
+    }
+  }
+
+  function handleTouchMove(event: TouchEvent) {
+    event.preventDefault();
+    const touches = event.touches;
+    
+    if (touches.length === 1 && isTouching) {
+      // 단일 터치 - 팬
+      const deltaX = touches[0].clientX - lastTouchX;
+      const deltaY = touches[0].clientY - lastTouchY;
+      translateX += deltaX * 0.7;
+      translateY += deltaY * 0.7;
+      lastTouchX = touches[0].clientX;
+      lastTouchY = touches[0].clientY;
+      updateTransform();
+    } else if (touches.length === 2 && isTouching) {
+      // 두 손가락 터치 - 줌
+      const touch1 = touches[0];
+      const touch2 = touches[1];
+      const distance = Math.sqrt(
+        Math.pow(touch2.clientX - touch1.clientX, 2) + 
+        Math.pow(touch2.clientY - touch1.clientY, 2)
+      );
+      
+      if (touchStartDistance > 0) {
+        const scaleRatio = distance / touchStartDistance;
+        const newScale = Math.max(0.1, Math.min(5, touchStartScale * scaleRatio));
+        scale = newScale;
+        updateTransform();
+      }
+    }
+  }
+
+  function handleTouchEnd(event: TouchEvent) {
+    event.preventDefault();
+    isTouching = false;
+    touchStartDistance = 0;
+    touchStartScale = 1;
+  }
+
   // transform 적용
   function updateTransform() {
     if (svgElement) {
@@ -109,11 +178,24 @@
     updateTransform();
   }
   function zoomIn() {
-    scale = Math.min(5, scale * 1.1);
+    const newScale = Math.min(5, scale * 1.2);
+    const scaleDiff = newScale - scale;
+    const centerX = treeContainer.clientWidth / 2;
+    const centerY = treeContainer.clientHeight / 2;
+    translateX -= (centerX - translateX) * scaleDiff / scale;
+    translateY -= (centerY - translateY) * scaleDiff / scale;
+    scale = newScale;
     updateTransform();
   }
+  
   function zoomOut() {
-    scale = Math.max(0.1, scale * 0.9);
+    const newScale = Math.max(0.1, scale * 0.8);
+    const scaleDiff = newScale - scale;
+    const centerX = treeContainer.clientWidth / 2;
+    const centerY = treeContainer.clientHeight / 2;
+    translateX -= (centerX - translateX) * scaleDiff / scale;
+    translateY -= (centerY - translateY) * scaleDiff / scale;
+    scale = newScale;
     updateTransform();
   }
 
@@ -192,6 +274,7 @@
           treeContainer.addEventListener('mousedown', handleMouseDown);
           document.addEventListener('mousemove', handleMouseMove);
           document.addEventListener('mouseup', handleMouseUp);
+          // 터치 이벤트는 HTML에서 직접 바인딩하므로 여기서는 추가하지 않음
         } else {
           setTimeout(initTreeView, 0);
         }
@@ -243,7 +326,13 @@
         </div>
       </div>
       <div class="tree-content" class:collapsed={isCollapsed}>
-        <div class="tree-container" bind:this={treeContainer}>
+        <div 
+          class="tree-container" 
+          bind:this={treeContainer}
+          on:touchstart={handleTouchStart}
+          on:touchmove={handleTouchMove}
+          on:touchend={handleTouchEnd}
+        >
           <svg class="tree-svg" preserveAspectRatio="xMidYMid meet">
             {#each _paths as path}
               <path d={path} stroke="#3b82f6" stroke-width="3" fill="none" class="connection-line"
@@ -256,6 +345,7 @@
                   on:keydown={(e) => e.key === 'Enter' && handleNodeClick(node.id)}
                   on:mousedown|preventDefault
                   on:dragstart|preventDefault
+                  on:touchstart|preventDefault
                   role="button"
                   tabindex="0"
                   aria-label="노드 {node.question} 클릭" />
@@ -332,6 +422,13 @@
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+    touch-action: none; /* 터치 스크롤 방지 */
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tree-container:active {
+    cursor: grabbing;
   }
   .tree-svg {
     position: relative;
@@ -356,11 +453,20 @@
     stroke: #d1d5db;
     stroke-width: 2;
     transition: all 0.2s ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
   .node-circle.active {
     fill: #3b82f6;
     stroke: #2563eb;
     stroke-width: 3;
+  }
+  .node-circle:hover {
+    fill: #e5e7eb;
+    stroke: #9ca3af;
+  }
+  .node-circle:active {
+    transform: scale(0.95);
   }
   .node-icon {
     font-size: 16px;
@@ -422,13 +528,45 @@
       right: auto;
       width: 100%;
       margin: 1rem;
-      max-height: 250px; /* 높이 줄임 (300 → 250) */
+      max-height: 250px;
       height: auto;
     }
     
     .tree-view.empty {
       width: 100%;
-      max-height: 180px; /* 높이 줄임 (200 → 180) */
+      max-height: 180px;
+    }
+    
+    .tree-header {
+      padding: 0.75rem;
+    }
+    
+    .tree-header h3 {
+      font-size: 0.9rem;
+    }
+    
+    .tree-controls {
+      gap: 0.5rem;
+    }
+    
+    .zoom-controls {
+      padding: 0.125rem;
+    }
+    
+    .zoom-btn {
+      width: 20px;
+      height: 20px;
+      font-size: 12px;
+    }
+    
+    .zoom-level {
+      font-size: 10px;
+      min-width: 28px;
+    }
+    
+    .tree-info {
+      font-size: 0.7rem;
+      padding: 0.125rem 0.375rem;
     }
   }
 
@@ -535,6 +673,17 @@
     font-weight: 600;
     color: #374151;
     transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+
+  .zoom-btn:active {
+    transform: scale(0.95);
+    background: #e5e7eb;
   }
 
   .zoom-btn:hover {
@@ -572,14 +721,98 @@
   @media (max-width: 768px) {
     .tree-view {
       margin: 0.5rem;
+      max-height: 200px;
+    }
+    
+    .tree-view.empty {
+      max-height: 140px;
     }
     
     .tree-header {
-      padding: 0.75rem;
+      padding: 0.5rem;
+    }
+    
+    .tree-header h3 {
+      font-size: 0.875rem;
     }
     
     .tree-container {
-      height: 200px; /* 모바일에서 높이 더 줄임 (250 → 200) */
+      height: 150px;
+    }
+    
+    .tree-controls {
+      flex-direction: column;
+      gap: 0.25rem;
+      align-items: flex-end;
+    }
+    
+    .zoom-controls {
+      order: 2;
+    }
+    
+    .tree-info {
+      order: 1;
+      font-size: 0.65rem;
+      padding: 0.125rem 0.25rem;
+    }
+    
+    .node-title {
+      font-size: 9px;
+    }
+    
+    .node-icon {
+      font-size: 14px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .tree-view {
+      margin: 0.25rem;
+      max-height: 180px;
+    }
+    
+    .tree-view.empty {
+      max-height: 120px;
+    }
+    
+    .tree-header {
+      padding: 0.375rem;
+    }
+    
+    .tree-header h3 {
+      font-size: 0.8rem;
+    }
+    
+    .tree-container {
+      height: 120px;
+    }
+    
+    .zoom-btn {
+      width: 18px;
+      height: 18px;
+      font-size: 11px;
+    }
+    
+    .zoom-level {
+      font-size: 9px;
+      min-width: 24px;
+    }
+    
+    .tree-info {
+      font-size: 0.6rem;
+      padding: 0.125rem 0.25rem;
+    }
+    
+    .node-title {
+      font-size: 8px;
+    }
+    
+    .node-icon {
+      font-size: 12px;
+    }
+    
+    .empty-tree p {
+      font-size: 0.8rem;
     }
   }
 </style>

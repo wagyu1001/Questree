@@ -7,7 +7,7 @@
 <svelte:head>
   <title>Questree - 인터랙티브 학습 맵</title>
   <meta name="description" content="AI와의 대화를 트리 구조로 시각화하는 학습 도구" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
 </svelte:head>
 
 <main class="app">
@@ -54,6 +54,30 @@
 
   :global(*) {
     box-sizing: border-box;
+  }
+
+  /* 모바일 터치 최적화 */
+  :global(*) {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  :global(input, textarea, [contenteditable]) {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+
+  :global(.content-text, .content-text *) {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
   }
 
   .app {
@@ -140,21 +164,57 @@
     
     .header-content {
       padding: 1rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    
+    .logo {
+      margin-right: 0;
     }
     
     .header-subtitle {
       margin-left: 0;
-      margin-top: 0.25rem;
+      margin-top: 0;
+      font-size: 0.875rem;
     }
   }
 
   @media (max-width: 768px) {
+    .header-content {
+      padding: 0.75rem 1rem;
+    }
+    
     .logo h1 {
       font-size: 1.25rem;
     }
     
     .header-subtitle {
       font-size: 0.8rem;
+      line-height: 1.3;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .header-content {
+      padding: 0.5rem 0.75rem;
+    }
+    
+    .logo {
+      gap: 0.5rem;
+    }
+    
+    .logo svg {
+      width: 24px;
+      height: 24px;
+    }
+    
+    .logo h1 {
+      font-size: 1.125rem;
+    }
+    
+    .header-subtitle {
+      font-size: 0.75rem;
     }
   }
 

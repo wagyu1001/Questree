@@ -681,17 +681,31 @@
   }
 
   @media (max-width: 768px) {
+    .chat-input-container {
+      padding: 0.75rem;
+    }
+    
     .input-wrapper {
       flex-direction: column;
       align-items: stretch;
+      gap: 0.5rem;
     }
     
     .button-group {
       justify-content: center;
+      gap: 0.375rem;
     }
     
     .send-button {
       justify-content: center;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.9rem;
+    }
+    
+    .file-button {
+      min-width: 44px;
+      height: 44px;
+      padding: 0.625rem;
     }
     
     .file-preview {
@@ -701,6 +715,91 @@
     
     .file-name {
       max-width: 150px;
+    }
+    
+    textarea {
+      font-size: 16px; /* iOS 줌 방지 */
+      padding: 0.625rem;
+      min-height: 2.5rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .chat-input-container {
+      padding: 0.5rem;
+    }
+    
+    .input-wrapper {
+      gap: 0.375rem;
+    }
+    
+    .button-group {
+      gap: 0.25rem;
+    }
+    
+    .send-button {
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+    }
+    
+    .file-button {
+      min-width: 40px;
+      height: 40px;
+      padding: 0.5rem;
+    }
+    
+    .file-button svg {
+      width: 18px;
+      height: 18px;
+    }
+    
+    .send-button svg {
+      width: 18px;
+      height: 18px;
+    }
+    
+    .file-preview {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+    }
+    
+    .file-preview-header {
+      margin-bottom: 0.5rem;
+    }
+    
+    .file-count {
+      font-size: 0.8rem;
+    }
+    
+    .file-item {
+      padding: 0.5rem;
+    }
+    
+    .file-name {
+      max-width: 120px;
+      font-size: 0.8rem;
+    }
+    
+    .file-size {
+      font-size: 0.7rem;
+    }
+    
+    textarea {
+      font-size: 16px;
+      padding: 0.5rem;
+      min-height: 2.25rem;
+      font-size: 0.9rem;
+    }
+    
+    .char-counter {
+      font-size: 0.7rem;
+      margin-top: 0.375rem;
+    }
+    
+    .error-message {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      font-size: 0.8rem;
     }
   }
 </style>

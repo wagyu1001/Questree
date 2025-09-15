@@ -5,6 +5,7 @@
   import { validateTextSelection, validateFollowUpPrompt, isTextInContentArea } from '../utils/textUtils.js';
   import { scrollToBottom } from '../utils/scrollUtils.js';
   import { formatContent } from '../utils/contentFormatter.js';
+  import TutorialModal from './TutorialModal.svelte';
   
   // 상태 변수들
   let activeNode = getActiveNode($conversationStore);
@@ -16,6 +17,11 @@
   let isDragging = false;
   let dragEndTimer: ReturnType<typeof setTimeout> | null = null;
   let tabContentEl: HTMLDivElement | null = null;
+  
+  // 튜토리얼 모달 관련 변수들
+  let tutorialModal: TutorialModal;
+  let hasShownTutorial = false;
+  let previousNodeCount = 0;
 
   // 반응형 구독
   $: activeNode = getActiveNode($conversationStore);
@@ -26,6 +32,21 @@
     setTimeout(() => {
       scrollToBottom();
     }, 100);
+  }
+
+  // 첫 답변을 받았을 때 튜토리얼 표시
+  $: {
+    const currentNodeCount = Object.keys($conversationStore.nodes).length;
+    if (currentNodeCount > 0 && previousNodeCount === 0 && !hasShownTutorial && activeNode?.content && !loadingState.isLoading) {
+      // 첫 번째 노드가 생성되고 내용이 있을 때 튜토리얼 표시
+      setTimeout(() => {
+        if (tutorialModal) {
+          tutorialModal.show();
+          hasShownTutorial = true;
+        }
+      }, 1000); // 1초 후에 표시하여 사용자가 답변을 확인할 시간 제공
+    }
+    previousNodeCount = currentNodeCount;
   }
 
 
@@ -331,6 +352,9 @@
   {/if}
 {/if}
 
+<!-- 튜토리얼 모달 -->
+<TutorialModal bind:this={tutorialModal} on:close={() => {}} />
+
 <style>
   .tab-view {
     flex: 1;
@@ -338,6 +362,256 @@
     flex-direction: column;
     height: 100vh;
     padding-bottom: 120px; /* ChatInput 공간 확보 */
+  }
+
+  /* 모바일 반응형 디자인 */
+  @media (max-width: 768px) {
+    .tab-view {
+      padding-bottom: 140px; /* 모바일에서 입력창 공간 더 확보 */
+    }
+    
+    .tab-header {
+      padding: 1rem;
+    }
+    
+    .tab-title {
+      font-size: 1.25rem;
+      line-height: 1.3;
+    }
+    
+    .tab-content {
+      padding: 1rem;
+    }
+    
+    .content-text {
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+    
+    .content-text :global(.content-h2) {
+      font-size: 1.25rem;
+      margin: 0.5rem 0 0.375rem 0;
+    }
+    
+    .content-text :global(.content-h3) {
+      font-size: 1.125rem;
+      margin: 0.5rem 0 0.125rem 0;
+    }
+    
+    .content-text :global(.content-h4) {
+      font-size: 1rem;
+      margin: 0.375rem 0 0.125rem 0;
+    }
+    
+    .content-text :global(.content-code-block) {
+      padding: 0.5rem;
+      font-size: 0.8rem;
+    }
+    
+    .loading-spinner-container {
+      padding: 1.5rem;
+      margin: 1rem;
+    }
+    
+    .loading-title {
+      font-size: 1rem;
+    }
+    
+    .empty-state {
+      padding: 1.5rem;
+    }
+    
+    .empty-state h2 {
+      font-size: 1.25rem;
+    }
+    
+    .empty-icon svg {
+      width: 48px;
+      height: 48px;
+    }
+    
+    /* 추가 질문 입력 영역 모바일 최적화 */
+    .follow-up-input-container {
+      bottom: 20px;
+      width: 95%;
+      max-width: none;
+    }
+    
+    .selected-text-display {
+      padding: 0.75rem 1rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+    }
+    
+    .selected-text-label {
+      font-size: 0.8rem;
+    }
+    
+    .selected-text-content {
+      font-size: 0.8rem;
+      max-width: 100%;
+      white-space: normal;
+    }
+    
+    .follow-up-suffix {
+      font-size: 0.8rem;
+    }
+    
+    .follow-up-input-area {
+      padding: 1rem;
+    }
+    
+    .follow-up-textarea {
+      font-size: 16px; /* iOS 줌 방지 */
+      min-height: 60px;
+      padding: 0.5rem;
+    }
+    
+    .follow-up-actions {
+      gap: 0.5rem;
+    }
+    
+    .cancel-follow-up-btn,
+    .submit-follow-up-btn {
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .tab-view {
+      padding-bottom: 160px; /* 더 작은 화면에서 입력창 공간 더 확보 */
+    }
+    
+    .tab-header {
+      padding: 0.75rem;
+    }
+    
+    .tab-title {
+      font-size: 1.125rem;
+    }
+    
+    .tab-meta {
+      margin-top: 0.375rem;
+    }
+    
+    .timestamp {
+      font-size: 0.8rem;
+    }
+    
+    .tab-content {
+      padding: 0.75rem;
+    }
+    
+    .content-text {
+      font-size: 0.9rem;
+    }
+    
+    .content-text :global(.content-h2) {
+      font-size: 1.125rem;
+    }
+    
+    .content-text :global(.content-h3) {
+      font-size: 1rem;
+    }
+    
+    .content-text :global(.content-h4) {
+      font-size: 0.95rem;
+    }
+    
+    .content-text :global(.content-code) {
+      font-size: 0.8rem;
+      padding: 0.125rem 0.1875rem;
+    }
+    
+    .content-text :global(.content-code-block) {
+      padding: 0.375rem;
+      font-size: 0.75rem;
+    }
+    
+    .content-text :global(.content-list),
+    .content-text :global(.content-ordered-list) {
+      padding-left: 1rem;
+    }
+    
+    .content-text :global(.content-quote) {
+      padding: 0.75rem 1rem;
+      margin: 0.75rem 0;
+    }
+    
+    .loading-spinner-container {
+      padding: 1rem;
+      margin: 0.5rem;
+    }
+    
+    .loading-title {
+      font-size: 0.95rem;
+    }
+    
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+    }
+    
+    .empty-state {
+      padding: 1rem;
+    }
+    
+    .empty-state h2 {
+      font-size: 1.125rem;
+    }
+    
+    .empty-state p {
+      font-size: 0.9rem;
+    }
+    
+    .hint {
+      font-size: 0.8rem;
+    }
+    
+    .empty-icon svg {
+      width: 40px;
+      height: 40px;
+    }
+    
+    /* 추가 질문 입력 영역 소형 화면 최적화 */
+    .follow-up-input-container {
+      bottom: 30px;
+      width: 98%;
+    }
+    
+    .selected-text-display {
+      padding: 0.5rem 0.75rem;
+    }
+    
+    .selected-text-label,
+    .selected-text-content,
+    .follow-up-suffix {
+      font-size: 0.75rem;
+    }
+    
+    .follow-up-input-area {
+      padding: 0.75rem;
+    }
+    
+    .follow-up-textarea {
+      font-size: 16px;
+      min-height: 50px;
+      padding: 0.375rem;
+    }
+    
+    .follow-up-actions {
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+    
+    .cancel-follow-up-btn,
+    .submit-follow-up-btn {
+      padding: 0.5rem;
+      font-size: 0.75rem;
+      justify-content: center;
+    }
   }
 
   .tab-header {

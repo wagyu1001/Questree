@@ -41,6 +41,10 @@ PORT=3000
 
 Google Gemini API 키는 [Google AI Studio](https://makersuite.google.com/app/apikey)에서 발급받을 수 있습니다.
 
+**개발 모드 vs 프로덕션 모드:**
+- **개발 모드** (`NODE_ENV !== 'production'`): Gemini API를 호출하지 않고 샘플 응답을 반환합니다. 크레딧을 절약할 수 있습니다.
+- **프로덕션 모드** (`NODE_ENV=production`): 실제 Gemini API를 호출하여 AI 응답을 제공합니다.
+
 ### 3. 개발 서버 실행
 
 ```bash
@@ -101,7 +105,8 @@ AI에게 질문을 보내고 답변을 받습니다.
 ```json
 {
   "answer": "AI의 답변",
-  "timestamp": "2024-01-01T00:00:00.000Z"
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "mode": "development" // 또는 "production"
 }
 ```
 
@@ -139,9 +144,9 @@ Render 대시보드에서 다음 환경 변수를 설정합니다:
 
 ## 개발 정보
 
-- **개발 모드**: `npm run dev`로 백엔드와 프론트엔드를 동시에 실행
+- **개발 모드**: `npm run dev`로 백엔드와 프론트엔드를 동시에 실행 (Gemini API 호출 없음)
 - **프로덕션 빌드**: `npm run build`로 클라이언트 빌드
-- **프로덕션 실행**: `npm start`로 서버 실행
+- **프로덕션 실행**: `NODE_ENV=production npm start`로 서버 실행 (실제 Gemini API 호출)
 
 ## 라이선스
 

@@ -4,7 +4,6 @@
   
   let prompt = '';
   let error = '';
-  let inputError = '';
   let selectedFiles: File[] = [];
   let isDragOver = false;
   let fileInput: HTMLInputElement;

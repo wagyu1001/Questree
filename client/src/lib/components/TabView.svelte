@@ -2,7 +2,11 @@
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
   import { conversationStore, getActiveNode, createNode, addNode, getLoadingState } from '../stores.js';
+  import { validateTextSelection, validateFollowUpPrompt, isTextInContentArea } from '../utils/textUtils.js';
+  import { scrollToBottom } from '../utils/scrollUtils.js';
+  import { formatContent } from '../utils/contentFormatter.js';
   
+  // 상태 변수들
   let activeNode = getActiveNode($conversationStore);
   let selectedText = '';
   let showFollowUpInput = false;
@@ -10,31 +14,36 @@
   let isAskingFollowUp = false;
   let followUpError = '';
   let isDragging = false;
-  let dragEndTimer: number | null = null;
+  let dragEndTimer: ReturnType<typeof setTimeout> | null = null;
+  let tabContentEl: HTMLDivElement | null = null;
 
-  // 스토어 구독
+  // 반응형 구독
   $: activeNode = getActiveNode($conversationStore);
   $: loadingState = getLoadingState($conversationStore);
 
-  // 드래그 시작 이벤트 핸들러
+  // activeNode.content가 바뀔 때 감지하고 자동 스크롤
+  $: if (tabContentEl && activeNode?.content) {
+    setTimeout(() => {
+      scrollToBottom();
+    }, 100);
+  }
+
+
+  // ===== 마우스 이벤트 핸들러 =====
   function handleMouseDown(event: MouseEvent) {
     isDragging = false;
   }
 
-  // 드래그 중 이벤트 핸들러
   function handleMouseMove(event: MouseEvent) {
-    if (event.buttons === 1) { // 마우스 왼쪽 버튼이 눌려있을 때
+    if (event.buttons === 1) {
       isDragging = true;
     }
   }
 
-  // 텍스트 선택 이벤트 핸들러 (드래그 끝날 때)
   function handleMouseUp(event: MouseEvent) {
     if (typeof window === 'undefined') return;
     
-    // 드래그가 끝났을 때만 처리
     if (isDragging) {
-      // 드래그가 완전히 끝났는지 확인하기 위해 약간의 지연
       if (dragEndTimer) {
         clearTimeout(dragEndTimer);
       }
@@ -46,18 +55,18 @@
         if (text && text.length > 0) {
           selectedText = text;
           showFollowUpInput = true;
-          followUpPrompt = ''; // 새로운 선택 시 프롬프트 초기화
+          followUpPrompt = '';
           followUpError = '';
         } else {
           showFollowUpInput = false;
           selectedText = '';
         }
         isDragging = false;
-      }, 150); // 드래그가 완전히 끝난 후 150ms 지연
+      }, 150);
     }
   }
 
-  // 선택 변경 이벤트 핸들러 추가
+  // ===== 텍스트 선택 핸들러 =====
   function handleSelectionChange() {
     if (typeof window === 'undefined' || isDragging) return;
     
@@ -67,42 +76,26 @@
     if (text && text.length > 0) {
       selectedText = text;
       
-      const range = selection?.getRangeAt(0);
-      if (range) {
-        // 선택된 텍스트가 content-text 영역 내에 있는지 확인
-        const contentElement = document.querySelector('.content-text');
-        if (contentElement) {
-          const contentRect = contentElement.getBoundingClientRect();
-          const rect = range.getBoundingClientRect();
-          
-          // content 영역 내에서만 input 표시
-          if (rect.top >= contentRect.top && rect.bottom <= contentRect.bottom) {
-            showFollowUpInput = true;
-          }
-          // content 영역 밖에서 선택해도 기존 모달은 유지
-        }
+      if (isTextInContentArea(selection)) {
+        showFollowUpInput = true;
       }
     }
-    // 선택이 해제되어도 모달은 유지 (명시적인 취소만 허용)
   }
 
-  // 키보드 이벤트 핸들러
+  // ===== 키보드 이벤트 핸들러 =====
   function handleKeydown(event: KeyboardEvent) {
-    // ESC 키로 추가 질문 모달 닫기
     if (event.key === 'Escape' && showFollowUpInput) {
       cancelFollowUp();
     }
   }
 
-  // 전역 키보드 이벤트 핸들러
   function handleGlobalKeydown(event: KeyboardEvent) {
-    // ESC 키로 추가 질문 모달 닫기
     if (event.key === 'Escape' && showFollowUpInput) {
       cancelFollowUp();
     }
   }
 
-  // 추가 질문 취소
+  // ===== 팔로업 질문 핸들러 =====
   function cancelFollowUp() {
     showFollowUpInput = false;
     selectedText = '';
@@ -110,40 +103,13 @@
     followUpError = '';
   }
 
-  // 팔로업 질문 제출
   async function submitFollowUp() {
     if (!followUpPrompt.trim() || !activeNode || isAskingFollowUp) return;
     
-    // 팔로업 질문도 입력 검증
-    if (followUpPrompt.length < 3) {
-      followUpError = '질문은 최소 3자 이상 입력해주세요.';
+    const validation = validateFollowUpPrompt(followUpPrompt);
+    if (!validation.isValid) {
+      followUpError = validation.error;
       return;
-    }
-    
-    if (followUpPrompt.length > 2000) {
-      followUpError = '질문은 최대 2000자까지 입력 가능합니다.';
-      return;
-    }
-    
-    // 악의적인 패턴 검사
-    const dangerousPatterns = [
-      /<script/i,
-      /javascript:/i,
-      /on\w+\s*=/i,
-      /<iframe/i,
-      /<object/i,
-      /<embed/i,
-      /<link/i,
-      /<meta/i,
-      /data:text\/html/i,
-      /vbscript:/i
-    ];
-    
-    for (const pattern of dangerousPatterns) {
-      if (pattern.test(followUpPrompt)) {
-        followUpError = '안전하지 않은 내용이 포함되어 있습니다. 다시 입력해주세요.';
-        return;
-      }
     }
     
     isAskingFollowUp = true;
@@ -168,20 +134,15 @@
       
       const data = await response.json();
       
-      // 새 노드 생성 및 추가 (현재 노드의 자식으로)
       const newNode = createNode(
         selectedText.length > 50 ? selectedText.substring(0, 50) + '...' : selectedText,
         data.answer,
         activeNode.id,
-        selectedText // 드래그한 질문 텍스트
+        selectedText
       );
       
       addNode(newNode);
-      // 성공 후 상태 초기화
-      showFollowUpInput = false;
-      followUpPrompt = '';
-      selectedText = '';
-      followUpError = '';
+      cancelFollowUp();
       
     } catch (err) {
       console.error('팔로업 질문 API 호출 오류:', err);
@@ -192,7 +153,6 @@
   }
 
 
-  // 팔로업 질문 키보드 이벤트
   function handleFollowUpKeydown(event: KeyboardEvent) {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
@@ -202,95 +162,20 @@
     }
   }
 
-  // HTML 이스케이프 함수
-  function escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  // 안전한 텍스트 교체 함수
-  function safeReplace(text: string, pattern: RegExp, replacement: string): string {
-    return text.replace(pattern, (match, ...groups) => {
-      // 각 그룹을 HTML 이스케이프
-      const escapedGroups = groups.map((group: string) => escapeHtml(group));
-      return replacement.replace(/\$(\d+)/g, (_, index) => escapedGroups[parseInt(index) - 1] || '');
-    });
-  }
-
-  // 컨텐츠 포맷팅 함수 (보안 강화 및 가독성 개선)
-  function formatContent(content: string): string {
-    if (!content) return '';
-    
-    // 먼저 전체 텍스트를 HTML 이스케이프
-    let formatted = escapeHtml(content)
-      // 제목 (## 제목)
-      .replace(/^## (.+)$/gm, '<h2 class="content-h2">$1</h2>')
-      // 부제목 (### 제목)
-      .replace(/^### (.+)$/gm, '<h3 class="content-h3">$1</h3>')
-      // 소제목 (#### 제목)
-      .replace(/^#### (.+)$/gm, '<h4 class="content-h4">$1</h4>')
-      // 질문 텍스트 (**질문:** 텍스트)
-      .replace(/\*\*질문:\*\* (.+?)(?=\n\n\*\*답변:\*\*|$)/gs, '<div class="conversation-question"><div class="question-label">질문</div><div class="question-text">$1</div></div>')
-      // 답변 텍스트 (**답변:** 텍스트)
-      .replace(/\*\*답변:\*\* (.+?)(?=\n\n---|$)/gs, '<div class="conversation-answer"><div class="answer-label">답변</div><div class="answer-text">$1</div></div>')
-      // 볼드 텍스트 (**텍스트** 또는 __텍스트__)
-      .replace(/\*\*(.*?)\*\*/g, '<strong class="content-bold">$1</strong>')
-      .replace(/__(.*?)__/g, '<strong class="content-bold">$1</strong>')
-      // 이탤릭 텍스트 (*텍스트* 또는 _텍스트_)
-      .replace(/\*(.*?)\*/g, '<em class="content-italic">$1</em>')
-      .replace(/_(.*?)_/g, '<em class="content-italic">$1</em>')
-      // 인라인 코드 (`코드`)
-      .replace(/`([^`]+)`/g, '<code class="content-code">$1</code>')
-      // 코드 블록 (```코드```)
-      .replace(/```([^`]+)```/g, '<pre class="content-code-block"><code>$1</code></pre>')
-      // 리스트 아이템 (- 아이템 또는 * 아이템)
-      .replace(/^[-*] (.+)$/gm, '<li class="content-list-item">$1</li>')
-      // 번호 리스트 (1. 아이템)
-      .replace(/^\d+\. (.+)$/gm, '<li class="content-ordered-item">$1</li>')
-      // 강조 텍스트 (==텍스트==)
-      .replace(/==(.+?)==/g, '<mark class="content-highlight">$1</mark>')
-      // 취소선 (~~텍스트~~)
-      .replace(/~~(.+?)~~/g, '<del class="content-strikethrough">$1</del>')
-      // 인용문 (> 텍스트)
-      .replace(/^> (.+)$/gm, '<blockquote class="content-quote">$1</blockquote>')
-      // 질문/답변 구분선 (---)
-      .replace(/^---$/gm, '<div class="conversation-separator"><div class="separator-line"></div><div class="separator-text">새로운 질문</div><div class="separator-line"></div></div>')
-      // 일반 구분선 (---)
-      .replace(/^---$/gm, '<hr class="content-divider">')
-      // 일반 줄바꿈 (연속된 줄바꿈을 최소화)
-      .replace(/\n\n+/g, '<br><br>') // 연속 줄바꿈을 두 개로 통합
-      .replace(/\n/g, '<br>');
-    
-    // 리스트 아이템들을 ul로 감싸기
-    formatted = formatted
-      .replace(/(<li class="content-list-item">.*?<\/li>)/gs, '<ul class="content-list">$1</ul>')
-      .replace(/(<li class="content-ordered-item">.*?<\/li>)/gs, '<ol class="content-ordered-list">$1</ol>');
-    
-    // 연속된 blockquote를 하나로 묶기
-    formatted = formatted.replace(/(<blockquote class="content-quote">.*?<\/blockquote>)/gs, (match) => {
-      return match.replace(/<br><br>/g, '<br>');
-    });
-    
-    return formatted;
-  }
-
-  // 추가 질문 입력 영역 외부 클릭 시 숨기기
+  // ===== 이벤트 핸들러 =====
   function handleDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
     
-    // 추가 질문 입력 영역 내부 클릭은 무시
     if (target.closest('.follow-up-input-container')) {
       return;
     }
     
-    // 명시적인 취소 액션인 경우에만 숨기기
-    // 단순한 외부 클릭으로는 모달이 사라지지 않도록 수정
     if (target.closest('.cancel-follow-up-btn')) {
       showFollowUpInput = false;
       selectedText = '';
     }
   }
+
 
   onMount(() => {
     if (typeof document !== 'undefined') {
@@ -329,6 +214,7 @@
         class="tab-content"
         role="textbox"
         tabindex="0"
+        bind:this={tabContentEl}
         on:mousedown={handleMouseDown}
         on:mousemove={handleMouseMove}
         on:mouseup={handleMouseUp}

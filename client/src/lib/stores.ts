@@ -95,39 +95,6 @@ export function setActiveTab(nodeId: string) {
   });
 }
 
-// 노드 삭제 함수 (선택사항)
-export function deleteNode(nodeId: string) {
-  conversationStore.update(state => {
-    const newState = { ...state };
-    const node = newState.nodes[nodeId];
-    
-    if (!node) return state;
-    
-    // 자식 노드들도 재귀적으로 삭제
-    const deleteRecursive = (id: string) => {
-      const childNode = newState.nodes[id];
-      if (childNode) {
-        childNode.children.forEach(deleteRecursive);
-        delete newState.nodes[id];
-      }
-    };
-    
-    deleteRecursive(nodeId);
-    
-    // 부모 노드에서도 제거
-    if (node.parentId && newState.nodes[node.parentId]) {
-      newState.nodes[node.parentId].children = 
-        newState.nodes[node.parentId].children.filter(id => id !== nodeId);
-    }
-    
-    // 활성 탭이 삭제된 노드라면 부모 노드로 변경
-    if (newState.activeTabId === nodeId) {
-      newState.activeTabId = node.parentId || newState.rootNodeId;
-    }
-    
-    return newState;
-  });
-}
 
 // 트리 위치 계산 함수
 export function calculateTreePositions() {

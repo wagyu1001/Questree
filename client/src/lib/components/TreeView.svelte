@@ -9,6 +9,9 @@
   let rootNode: TreeNode | null = null;
   let activeTabId: string | null = null;
 
+  // 아코디언 토글 기능
+  let isCollapsed = false;
+
   // 줌/팬 기능 관련 변수들
   let scale = 1;
   let translateX = 0;
@@ -45,6 +48,11 @@
 
   function handleNodeClick(nodeId: string) {
     setActiveTab(nodeId);
+  }
+
+  // 아코디언 토글 함수
+  function toggleAccordion() {
+    isCollapsed = !isCollapsed;
   }
 
   // 줌 기능
@@ -216,8 +224,15 @@
   {#if rootNode}
     <div class="tree-view">
       <div class="tree-header">
-        <h3>대화 트리</h3>
-        <div class="tree-controls">
+        <div class="header-left" on:click={toggleAccordion} on:keydown={(e) => e.key === 'Enter' && toggleAccordion()} role="button" tabindex="0" aria-label="트리 뷰 접기/펼치기">
+          <button class="accordion-toggle" class:collapsed={isCollapsed} aria-label="아코디언 토글">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6,9 12,15 18,9"></polyline>
+            </svg>
+          </button>
+          <h3>대화 트리</h3>
+        </div>
+        <div class="tree-controls" role="group" aria-label="트리 뷰 컨트롤">
           <div class="zoom-controls">
             <button class="zoom-btn" on:click={zoomOut}>-</button>
             <span class="zoom-level">{Math.round(scale * 100)}%</span>
@@ -227,34 +242,66 @@
           <div class="tree-info">{nodes.length}개 노드</div>
         </div>
       </div>
-      <div class="tree-container" bind:this={treeContainer}>
-        <svg class="tree-svg" preserveAspectRatio="xMidYMid meet">
-          {#each _paths as path}
-            <path d={path} stroke="#3b82f6" stroke-width="3" fill="none" class="connection-line"
-              stroke-linecap="round" stroke-dasharray="5,5" />
-          {/each}
-          {#each nodes as node (node.id)}
-            <g class="node-group" transform="translate({node.position.x}, {node.position.y})">
-              <circle r="20" class="node-circle" class:active={activeTabId === node.id}
-                on:click={() => handleNodeClick(node.id)} />
-              <text x="0" y="6" text-anchor="middle" class="node-icon">{node.level === 0 ? '🏠' : '💬'}</text>
-              <text x="0" y="45" text-anchor="middle" class="node-title">{node.question}</text>
-            </g>
-          {/each}
-        </svg>
+      <div class="tree-content" class:collapsed={isCollapsed}>
+        <div class="tree-container" bind:this={treeContainer}>
+          <svg class="tree-svg" preserveAspectRatio="xMidYMid meet">
+            {#each _paths as path}
+              <path d={path} stroke="#3b82f6" stroke-width="3" fill="none" class="connection-line"
+                stroke-linecap="round" stroke-dasharray="5,5" />
+            {/each}
+            {#each nodes as node (node.id)}
+              <g class="node-group" transform="translate({node.position.x}, {node.position.y})">
+                <circle r="20" class="node-circle" class:active={activeTabId === node.id}
+                  on:click={() => handleNodeClick(node.id)} 
+                  on:keydown={(e) => e.key === 'Enter' && handleNodeClick(node.id)}
+                  on:mousedown|preventDefault
+                  on:dragstart|preventDefault
+                  role="button"
+                  tabindex="0"
+                  aria-label="노드 {node.question} 클릭" />
+                <text x="0" y="6" text-anchor="middle" class="node-icon">{node.level === 0 ? '🏠' : '💬'}</text>
+                <text x="0" y="45" text-anchor="middle" class="node-title">{node.question}</text>
+              </g>
+            {/each}
+          </svg>
+        </div>
       </div>
     </div>
   {:else}
     <div class="tree-view empty">
-      <div class="empty-tree">
-        <p>대화를 시작하시면<br>트리가 여기에 표시됩니다</p>
+      <div class="tree-header">
+        <div class="header-left" on:click={toggleAccordion} on:keydown={(e) => e.key === 'Enter' && toggleAccordion()} role="button" tabindex="0" aria-label="트리 뷰 접기/펼치기">
+          <button class="accordion-toggle" class:collapsed={isCollapsed} aria-label="아코디언 토글">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6,9 12,15 18,9"></polyline>
+            </svg>
+          </button>
+          <h3>대화 트리</h3>
+        </div>
+      </div>
+      <div class="tree-content" class:collapsed={isCollapsed}>
+        <div class="empty-tree">
+          <p>대화를 시작하시면<br>트리가 여기에 표시됩니다</p>
+        </div>
       </div>
     </div>
   {/if}
 {:else}
   <div class="tree-view empty">
-    <div class="empty-tree">
-      <p>로딩 중...</p>
+    <div class="tree-header">
+      <div class="header-left" on:click={toggleAccordion} on:keydown={(e) => e.key === 'Enter' && toggleAccordion()} role="button" tabindex="0" aria-label="트리 뷰 접기/펼치기">
+        <button class="accordion-toggle" class:collapsed={isCollapsed} aria-label="아코디언 토글">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6,9 12,15 18,9"></polyline>
+          </svg>
+        </button>
+        <h3>대화 트리</h3>
+      </div>
+    </div>
+    <div class="tree-content" class:collapsed={isCollapsed}>
+      <div class="empty-tree">
+        <p>로딩 중...</p>
+      </div>
     </div>
   </div>
 {/if}
@@ -281,6 +328,10 @@
     background: #fafafa;
     border-radius: 0.5rem;
     cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
   }
   .tree-svg {
     position: relative;
@@ -288,7 +339,18 @@
     height: 100%;
     transform-origin: 0 0;
     transition: transform 0.1s ease-out;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
   }
+  .node-group {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+
   .node-circle {
     fill: #f3f4f6;
     stroke: #d1d5db;
@@ -303,11 +365,19 @@
   .node-icon {
     font-size: 16px;
     pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
   }
   .node-title {
     font-size: 10px;
     fill: #6b7280;
     pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
   }
   .connection-line {
     transition: all 0.2s ease;
@@ -330,12 +400,12 @@
     color: #9ca3af;
     text-align: center;
     padding: 1rem;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
   }
 
-  .empty-tree svg {
-    margin-bottom: 0.75rem;
-    opacity: 0.5;
-  }
 
   .empty-tree p {
     margin: 0;
@@ -369,6 +439,70 @@
     padding: 1rem;
     border-bottom: 1px solid #e5e7eb;
     background: #f9fafb;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+  }
+
+  .tree-header:hover {
+    background: #f3f4f6;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.375rem;
+    transition: background-color 0.2s ease;
+  }
+
+  .header-left:hover {
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .accordion-toggle {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+    color: #6b7280;
+  }
+
+  .accordion-toggle:hover {
+    background: #e5e7eb;
+    color: #374151;
+  }
+
+  .accordion-toggle svg {
+    transition: transform 0.3s ease;
+  }
+
+  .accordion-toggle.collapsed svg {
+    transform: rotate(-90deg);
+  }
+
+  .tree-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+    max-height: 300px;
+    opacity: 1;
+    user-select: none; /* 트리 콘텐츠에서 텍스트 선택 비활성화 */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+
+  .tree-content.collapsed {
+    max-height: 0;
+    opacity: 0;
   }
 
   .tree-controls {

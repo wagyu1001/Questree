@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { initializeLanguage } from './stores/languageStore.js';
 
 // 노드 타입 정의
 export interface TreeNode {
@@ -35,6 +36,9 @@ const initialState: ConversationState = {
 
 // 대화 상태 스토어
 export const conversationStore = writable<ConversationState>(initialState);
+
+// 언어 초기화
+initializeLanguage();
 
 // 노드 생성 함수
 export function createNode(

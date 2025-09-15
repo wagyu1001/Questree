@@ -3,6 +3,7 @@
   import { browser } from '$app/environment';
   import { conversationStore, setActiveTab, calculateTreePositions, getRootNode } from '../stores.js';
   import type { TreeNode } from '../stores.js';
+  import { translationsStore, formatText } from '../stores/languageStore.js';
   
   let treeContainer: HTMLElement;
   let nodes: TreeNode[] = [];
@@ -313,16 +314,16 @@
               <polyline points="6,9 12,15 18,9"></polyline>
             </svg>
           </button>
-          <h3>대화 트리</h3>
+          <h3>{$translationsStore.conversationTree}</h3>
         </div>
-        <div class="tree-controls" role="group" aria-label="트리 뷰 컨트롤">
+        <div class="tree-controls" role="group" aria-label="{$translationsStore.conversationTree} 컨트롤">
           <div class="zoom-controls">
             <button class="zoom-btn" on:click={zoomOut}>-</button>
             <span class="zoom-level">{Math.round(scale * 100)}%</span>
             <button class="zoom-btn" on:click={zoomIn}>+</button>
             <button class="zoom-btn reset" on:click={resetZoom}>⌂</button>
           </div>
-          <div class="tree-info">{nodes.length}개 노드</div>
+          <div class="tree-info">{formatText($translationsStore.nodes, { count: nodes.length })}</div>
         </div>
       </div>
       <div class="tree-content" class:collapsed={isCollapsed}>
@@ -366,12 +367,12 @@
               <polyline points="6,9 12,15 18,9"></polyline>
             </svg>
           </button>
-          <h3>대화 트리</h3>
+          <h3>{$translationsStore.conversationTree}</h3>
         </div>
       </div>
       <div class="tree-content" class:collapsed={isCollapsed}>
         <div class="empty-tree">
-          <p>대화를 시작하시면<br>트리가 여기에 표시됩니다</p>
+          <p>{$translationsStore.emptyTree}<br>{$translationsStore.emptyTreeDesc}</p>
         </div>
       </div>
     </div>
@@ -385,12 +386,12 @@
             <polyline points="6,9 12,15 18,9"></polyline>
           </svg>
         </button>
-        <h3>대화 트리</h3>
+        <h3>{$translationsStore.conversationTree}</h3>
       </div>
     </div>
     <div class="tree-content" class:collapsed={isCollapsed}>
       <div class="empty-tree">
-        <p>로딩 중...</p>
+        <p>{$translationsStore.loading}</p>
       </div>
     </div>
   </div>

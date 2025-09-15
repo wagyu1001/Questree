@@ -2,11 +2,13 @@
   import ChatInput from '../lib/components/ChatInput.svelte';
   import TabView from '../lib/components/TabView.svelte';
   import TreeView from '../lib/components/TreeView.svelte';
+  import LanguageSelector from '../lib/components/LanguageSelector.svelte';
+  import { translationsStore } from '../lib/stores/languageStore.js';
 </script>
 
 <svelte:head>
-  <title>Questree - 인터랙티브 학습 맵</title>
-  <meta name="description" content="AI와의 대화를 트리 구조로 시각화하는 학습 도구" />
+  <title>{$translationsStore.title} - Interactive Learning Map</title>
+  <meta name="description" content="{$translationsStore.subtitle}" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
 </svelte:head>
 
@@ -19,10 +21,13 @@
           <path d="M13 8H7"></path>
           <path d="M17 12H7"></path>
         </svg>
-        <h1>Questree</h1>
+        <h1>{$translationsStore.title}</h1>
       </div>
       <div class="header-subtitle">
-        AI와의 대화를 트리로 시각화하는 학습 도구
+        {$translationsStore.subtitle}
+      </div>
+      <div class="header-controls">
+        <LanguageSelector />
       </div>
     </div>
   </header>
@@ -99,14 +104,26 @@
     padding: 1rem 2rem;
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* 왼쪽 정렬 */
+    justify-content: space-between; /* 양쪽 정렬 */
   }
 
   .logo {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin-right: 1rem; /* 로고와 부제목 사이 간격 */
+  }
+  
+  .header-subtitle {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+    flex: 1;
+    margin-left: 1rem;
+  }
+  
+  .header-controls {
+    display: flex;
+    align-items: center;
   }
 
   .logo svg {
@@ -121,11 +138,6 @@
     letter-spacing: -0.025em;
   }
 
-  .header-subtitle {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin: 0; /* margin 제거 */
-  }
 
   .app-body {
     flex: 1;
@@ -169,14 +181,16 @@
       gap: 0.5rem;
     }
     
-    .logo {
-      margin-right: 0;
-    }
-    
     .header-subtitle {
       margin-left: 0;
       margin-top: 0;
       font-size: 0.875rem;
+      order: 2;
+    }
+    
+    .header-controls {
+      order: 3;
+      align-self: flex-end;
     }
   }
 

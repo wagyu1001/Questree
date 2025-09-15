@@ -6,6 +6,8 @@
   import { scrollToBottom } from '../utils/scrollUtils.js';
   import { formatContent } from '../utils/contentFormatter.js';
   import TutorialModal from './TutorialModal.svelte';
+  import { translationsStore, formatText, languageStore } from '../stores/languageStore.js';
+  import { trackAIQuestion, trackUserInteraction } from '../analytics.js';
   
   // 상태 변수들
   let activeNode = getActiveNode($conversationStore);
@@ -150,7 +152,7 @@
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || '서버 오류가 발생했습니다.');
+        throw new Error(errorData.error || $translationsStore.serverError);
       }
       
       const data = await response.json();
@@ -167,7 +169,7 @@
       
     } catch (err) {
       console.error('팔로업 질문 API 호출 오류:', err);
-      followUpError = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
+      followUpError = err instanceof Error ? err.message : $translationsStore.unknownError;
     } finally {
       isAskingFollowUp = false;
     }
@@ -226,7 +228,7 @@
         <h1 class="tab-title">{activeNode.title}</h1>
         <div class="tab-meta">
           <span class="timestamp">
-            {new Date(activeNode.timestamp).toLocaleString('ko-KR')}
+            {new Date(activeNode.timestamp).toLocaleString($languageStore === 'ko' ? 'ko-KR' : 'en-US', $translationsStore.dateFormat)}
           </span>
         </div>
       </div>
@@ -270,9 +272,9 @@
             <path d="M17 12H7"></path>
           </svg>
         </div>
-        <h2>질문을 시작해보세요</h2>
-        <p>아래 입력창에 궁금한 것을 물어보시면 AI가 답변해드립니다.</p>
-        <p class="hint">답변에서 텍스트를 선택하면 추가 질문을 할 수 있습니다.</p>
+        <h2>{$translationsStore.startConversation}</h2>
+        <p>{$translationsStore.startConversationDesc}</p>
+        <p class="hint">{$translationsStore.hint}</p>
       </div>
     {/if}
   </div>
@@ -286,8 +288,8 @@
           <path d="M17 12H7"></path>
         </svg>
       </div>
-      <h2>로딩 중...</h2>
-      <p>잠시만 기다려주세요.</p>
+      <h2>{$translationsStore.loading}</h2>
+      <p>{$translationsStore.loading}</p>
     </div>
   </div>
 {/if}
@@ -295,18 +297,18 @@
 {#if browser}
   <!-- 추가 질문 입력 영역 -->
   {#if showFollowUpInput && selectedText}
-    <div class="follow-up-input-container" on:click|stopPropagation role="dialog" aria-label="추가 질문 입력" tabindex="0" on:keydown={handleKeydown}>
+    <div class="follow-up-input-container" on:click|stopPropagation role="dialog" aria-label="{$translationsStore.followUpQuestion}" tabindex="0" on:keydown={handleKeydown}>
       <div class="selected-text-display">
-        <span class="selected-text-label">선택된 텍스트:</span>
+        <span class="selected-text-label">{$translationsStore.selectedText}</span>
         <span class="selected-text-content">"{selectedText}"</span>
-        <span class="follow-up-suffix">에 대한 추가 질문</span>
+        <span class="follow-up-suffix">{$translationsStore.followUpQuestion}</span>
       </div>
       
       <div class="follow-up-input-area">
         <textarea
           bind:value={followUpPrompt}
           on:keydown={handleFollowUpKeydown}
-          placeholder="추가 질문을 입력하세요..."
+          placeholder={$translationsStore.followUpPlaceholder}
           rows="3"
           class="follow-up-textarea"
         ></textarea>
@@ -317,7 +319,7 @@
             on:click={cancelFollowUp}
             disabled={isAskingFollowUp}
           >
-            취소
+            {$translationsStore.cancel}
           </button>
           <button 
             class="submit-follow-up-btn" 
@@ -326,13 +328,13 @@
           >
             {#if isAskingFollowUp}
               <div class="spinner"></div>
-              질문 중...
+              {$translationsStore.asking}
             {:else}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="22" y1="2" x2="11" y2="13"></line>
                 <polygon points="22,2 15,22 11,13 2,9"></polygon>
               </svg>
-              질문하기
+              {$translationsStore.askQuestion}
             {/if}
           </button>
         </div>

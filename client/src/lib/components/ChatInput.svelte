@@ -1,6 +1,7 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { createNode, addNode, setLoading, conversationStore, getLoadingState, getActiveNode, appendToNode } from '../stores.js';
+  import { translationsStore, formatText } from '../stores/languageStore.js';
   
   let prompt = '';
   let error = '';
@@ -25,16 +26,16 @@
   // 입력 검증 함수
   function validateInput(text: string): { isValid: boolean; error: string } {
     if (!text || text.trim().length < MIN_PROMPT_LENGTH) {
-      return { isValid: false, error: `질문은 최소 ${MIN_PROMPT_LENGTH}자 이상 입력해주세요.` };
+      return { isValid: false, error: $translationsStore.validationError };
     }
     
     if (text.length > MAX_PROMPT_LENGTH) {
-      return { isValid: false, error: `질문은 최대 ${MAX_PROMPT_LENGTH}자까지 입력 가능합니다.` };
+      return { isValid: false, error: $translationsStore.validationError };
     }
     
     const lines = text.split('\n');
     if (lines.length > MAX_LINES) {
-      return { isValid: false, error: `질문은 최대 ${MAX_LINES}줄까지 입력 가능합니다.` };
+      return { isValid: false, error: $translationsStore.validationError };
     }
     
     // 악의적인 패턴 검사
@@ -53,7 +54,7 @@
     
     for (const pattern of dangerousPatterns) {
       if (pattern.test(text)) {
-        return { isValid: false, error: '안전하지 않은 내용이 포함되어 있습니다. 다시 입력해주세요.' };
+        return { isValid: false, error: $translationsStore.validationError };
       }
     }
     
@@ -63,11 +64,11 @@
   // 파일 검증 함수
   function validateFile(file: File): { isValid: boolean; error: string } {
     if (file.size > MAX_FILE_SIZE) {
-      return { isValid: false, error: `파일 크기는 최대 ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB까지 가능합니다.` };
+      return { isValid: false, error: $translationsStore.validationError };
     }
     
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return { isValid: false, error: '이미지 파일만 업로드 가능합니다. (JPEG, PNG, GIF, WebP)' };
+      return { isValid: false, error: $translationsStore.validationError };
     }
     
     return { isValid: true, error: '' };
@@ -89,7 +90,7 @@
 
     for (const file of files) {
       if (selectedFiles.length + newFiles.length >= MAX_FILES) {
-        errors.push(`최대 ${MAX_FILES}개 파일까지 업로드 가능합니다.`);
+        errors.push($translationsStore.validationError);
         break;
       }
 
@@ -164,15 +165,15 @@
       }
     }
     
-    setLoading(true, 'AI가 답변을 생성하고 있습니다...');
+    setLoading(true, $translationsStore.loadingMessage);
     error = '';
     
     // 로딩 메시지 업데이트를 위한 타이머들
     const loadingMessages = [
-      'AI가 답변을 생성하고 있습니다...',
-      '이미지를 분석하고 있습니다...',
-      '최적의 답변을 준비하고 있습니다...',
-      '거의 완료되었습니다...'
+      $translationsStore.loadingMessage,
+      $translationsStore.loadingMessage,
+      $translationsStore.loadingMessage,
+      $translationsStore.loadingMessage
     ];
     
     let messageIndex = 0;
@@ -206,7 +207,7 @@
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || '서버 오류가 발생했습니다.');
+        throw new Error(errorData.error || $translationsStore.serverError);
       }
       
       const data = await response.json();
@@ -216,19 +217,19 @@
       
       if (activeNode) {
         // 기존 노드가 있으면 답변을 추가
-        const questionText = prompt.trim() || `이미지 ${selectedFiles.length}개`;
+        const questionText = prompt.trim() || formatText($translationsStore.fileCount, { count: selectedFiles.length });
         appendToNode(activeNode.id, data.answer, questionText);
       } else {
         // 기존 노드가 없으면 새 노드 생성
         const nodeTitle = prompt.trim() 
           ? (prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt)
-          : `이미지 ${selectedFiles.length}개`;
+          : formatText($translationsStore.fileCount, { count: selectedFiles.length });
         
         const newNode = createNode(
           nodeTitle,
           data.answer,
           null, // 루트 노드
-          prompt.trim() || `이미지 ${selectedFiles.length}개` // 질문 텍스트
+          prompt.trim() || formatText($translationsStore.fileCount, { count: selectedFiles.length }) // 질문 텍스트
         );
         
         addNode(newNode);
@@ -239,7 +240,7 @@
       
     } catch (err) {
       console.error('API 호출 오류:', err);
-      error = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
+      error = err instanceof Error ? err.message : $translationsStore.unknownError;
     } finally {
       clearInterval(messageInterval);
       setLoading(false);
@@ -271,7 +272,7 @@
         <textarea
           bind:value={prompt}
           on:keydown={handleKeydown}
-          placeholder="질문을 입력하세요... (Enter로 전송, Shift+Enter로 줄바꿈)"
+          placeholder={$translationsStore.placeholder}
           disabled={isLoading}
           rows="3"
         ></textarea>
@@ -282,8 +283,8 @@
             on:click={openFileDialog}
             disabled={isLoading}
             class="file-button"
-            title="이미지 파일 첨부"
-            aria-label="이미지 파일 첨부"
+            title={$translationsStore.fileButton}
+            aria-label={$translationsStore.fileButton}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -299,13 +300,13 @@
           >
             {#if isLoading}
               <div class="spinner"></div>
-              처리 중...
+              {$translationsStore.processing}
             {:else}
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="22" y1="2" x2="11" y2="13"></line>
                 <polygon points="22,2 15,22 11,13 2,9"></polygon>
               </svg>
-              전송
+              {$translationsStore.sendButton}
             {/if}
           </button>
         </div>
@@ -326,13 +327,13 @@
     {#if hasFiles}
       <div class="file-preview">
         <div class="file-preview-header">
-          <span class="file-count">선택된 파일: {selectedFiles.length}개</span>
+          <span class="file-count">{formatText($translationsStore.fileCount, { count: selectedFiles.length })}</span>
           <button 
             type="button"
             on:click={() => selectedFiles = []}
             class="clear-files-btn"
-            title="모든 파일 제거"
-            aria-label="모든 파일 제거"
+            title={$translationsStore.clearFiles}
+            aria-label={$translationsStore.clearFiles}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -355,8 +356,8 @@
                 type="button"
                 on:click={() => removeFile(index)}
                 class="remove-file-btn"
-                title="파일 제거"
-                aria-label="파일 제거"
+                title={$translationsStore.removeFile}
+                aria-label={$translationsStore.removeFile}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -371,7 +372,7 @@
     
     <!-- 문자 수 표시 -->
     <div class="char-counter" class:over-limit={isOverLimit}>
-      {charCount}/{MAX_PROMPT_LENGTH}
+      {formatText($translationsStore.charCounter, { current: charCount, max: MAX_PROMPT_LENGTH })}
     </div>
     
     {#if error}
@@ -389,7 +390,7 @@
   <div class="chat-input-container">
     <div class="input-wrapper">
       <textarea
-        placeholder="로딩 중..."
+        placeholder={$translationsStore.loading}
         disabled
         rows="3"
       ></textarea>
@@ -402,7 +403,7 @@
           <line x1="22" y1="2" x2="11" y2="13"></line>
           <polygon points="22,2 15,22 11,13 2,9"></polygon>
         </svg>
-        로딩 중...
+        {$translationsStore.loading}
       </button>
     </div>
   </div>

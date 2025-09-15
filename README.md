@@ -1,175 +1,175 @@
-# Questree - 인터랙티브 학습 맵
+# Questree - Interactive Learning Map
 
-AI와의 대화를 트리 구조로 시각화하는 인터랙티브 학습 도구입니다. Google Gemini API를 사용하여 질문에 답변하고, 대화의 흐름을 수평 트리 구조로 시각화합니다.
+An interactive learning tool that visualizes conversations with AI in a tree structure. Uses Google Gemini API to answer questions and visualizes conversation flow in a horizontal tree structure.
 
-## 주요 기능
+## Key Features
 
-- 🤖 **AI 채팅**: Google Gemini API를 통한 자연어 대화
-- 🌳 **트리 시각화**: 대화 흐름을 수평 트리 구조로 표시
-- 📝 **텍스트 선택 질문**: 답변에서 텍스트를 선택하여 추가 질문 가능
-- 🎯 **탭 기반 네비게이션**: 각 질문과 답변을 별도 탭으로 관리
-- 📱 **반응형 디자인**: 모바일과 데스크톱에서 모두 사용 가능
+- 🤖 **AI Chat**: Natural language conversation through Google Gemini API
+- 🌳 **Tree Visualization**: Displays conversation flow in horizontal tree structure
+- 📝 **Text Selection Questions**: Select text from answers to ask additional questions
+- 🎯 **Tab-based Navigation**: Manage each question and answer in separate tabs
+- 📱 **Responsive Design**: Works on both mobile and desktop
 
-## 기술 스택
+## Tech Stack
 
 - **Frontend**: SvelteKit + TypeScript
 - **Backend**: Node.js + Express
 - **AI API**: Google Gemini API
-- **스타일링**: CSS (Tailwind CSS 없이 순수 CSS)
+- **Styling**: CSS (Pure CSS without Tailwind CSS)
 
-## 설치 및 실행
+## Installation and Setup
 
-### 1. 의존성 설치
+### 1. Install Dependencies
 
 ```bash
-# 루트 디렉토리에서
+# In root directory
 npm install
 
-# 클라이언트 디렉토리에서
+# In client directory
 cd client
 npm install
 ```
 
-### 2. 환경 변수 설정
+### 2. Environment Variables
 
-루트 디렉토리에 `.env` 파일을 생성하고 다음 내용을 추가하세요:
+Create a `.env` file in the root directory and add the following:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
 PORT=3000
 ```
 
-Google Gemini API 키는 [Google AI Studio](https://makersuite.google.com/app/apikey)에서 발급받을 수 있습니다.
+You can get a Google Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey).
 
-**개발 모드 vs 프로덕션 모드:**
-- **개발 모드** (`NODE_ENV !== 'production'`): Gemini API를 호출하지 않고 샘플 응답을 반환합니다. 크레딧을 절약할 수 있습니다.
-- **프로덕션 모드** (`NODE_ENV=production`): 실제 Gemini API를 호출하여 AI 응답을 제공합니다.
+**Development Mode vs Production Mode:**
+- **Development Mode** (`NODE_ENV !== 'production'`): Returns sample responses without calling Gemini API. Saves credits.
+- **Production Mode** (`NODE_ENV=production`): Calls actual Gemini API to provide AI responses.
 
-### 3. 개발 서버 실행
+### 3. Run Development Server
 
 ```bash
-# 루트 디렉토리에서 (백엔드와 프론트엔드를 동시에 실행)
+# In root directory (runs both backend and frontend)
 npm run dev
 
-# 또는 개별적으로 실행
-npm run server  # 백엔드만
-npm run client  # 프론트엔드만
+# Or run individually
+npm run server  # Backend only
+npm run client  # Frontend only
 ```
 
-### 4. 브라우저에서 확인
+### 4. Check in Browser
 
-- 프론트엔드: http://localhost:5173
-- 백엔드 API: http://localhost:3000
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3000
 
-## 사용 방법
+## How to Use
 
-1. **질문하기**: 하단의 입력창에 질문을 입력하고 전송합니다.
-2. **답변 확인**: AI의 답변이 메인 화면에 표시됩니다.
-3. **추가 질문**: 답변에서 궁금한 부분을 선택하면 "추가 질문" 버튼이 나타납니다.
-4. **트리 탐색**: 우측 상단의 트리 뷰에서 대화 흐름을 확인하고 다른 질문으로 이동할 수 있습니다.
+1. **Ask Questions**: Enter your question in the input field at the bottom and send it.
+2. **View Answers**: AI's answer will be displayed on the main screen.
+3. **Additional Questions**: Select any part of the answer you're curious about and an "Additional Question" button will appear.
+4. **Tree Navigation**: Check the conversation flow in the tree view on the top right and navigate to other questions.
 
-## 프로젝트 구조
+## Project Structure
 
 ```
 questree/
-├── server/                 # Express.js 백엔드
-│   └── index.js           # 메인 서버 파일
-├── client/                # SvelteKit 프론트엔드
+├── server/                 # Express.js backend
+│   └── index.js           # Main server file
+├── client/                # SvelteKit frontend
 │   ├── src/
 │   │   ├── lib/
-│   │   │   ├── components/ # UI 컴포넌트들
+│   │   │   ├── components/ # UI components
 │   │   │   │   ├── ChatInput.svelte
 │   │   │   │   ├── TabView.svelte
 │   │   │   │   └── TreeView.svelte
-│   │   │   └── stores.ts  # 상태 관리
+│   │   │   └── stores.ts  # State management
 │   │   └── routes/
-│   │       └── +page.svelte # 메인 페이지
+│   │       └── +page.svelte # Main page
 │   └── package.json
-├── package.json           # 루트 패키지 설정
+├── package.json           # Root package configuration
 └── README.md
 ```
 
-## API 엔드포인트
+## API Endpoints
 
 ### POST /api/ask
-AI에게 질문을 보내고 답변을 받습니다.
+Send a question to AI and receive an answer.
 
-**요청:**
+**Request:**
 ```json
 {
-  "prompt": "질문 내용"
+  "prompt": "Your question here"
 }
 ```
 
-**응답:**
+**Response:**
 ```json
 {
-  "answer": "AI의 답변",
+  "answer": "AI's answer",
   "timestamp": "2024-01-01T00:00:00.000Z",
-  "mode": "development" // 또는 "production"
+  "mode": "development" // or "production"
 }
 ```
 
 ### GET /api/health
-서버 상태를 확인합니다.
+Check server status.
 
-**응답:**
+**Response:**
 ```json
 {
   "status": "OK",
   "timestamp": "2024-01-01T00:00:00.000Z",
-  "message": "Questree 서버가 정상적으로 작동 중입니다."
+  "message": "Questree server is running normally."
 }
 ```
 
-## Render 배포
+## Render Deployment
 
-### 1. Render 계정 생성 및 연결
-1. [Render.com](https://render.com)에서 계정을 생성합니다.
-2. GitHub 저장소를 Render에 연결합니다.
+### 1. Create Render Account and Connect
+1. Create an account at [Render.com](https://render.com).
+2. Connect your GitHub repository to Render.
 
-### 2. 환경 변수 설정
-Render 대시보드에서 다음 환경 변수를 설정합니다:
-- `GEMINI_API_KEY`: Google Gemini API 키
+### 2. Set Environment Variables
+Set the following environment variables in the Render dashboard:
+- `GEMINI_API_KEY`: Google Gemini API key
 - `NODE_ENV`: `production`
-- `PORT`: Render가 자동으로 설정
+- `PORT`: Set automatically by Render
 
-### 3. 배포 설정
+### 3. Deployment Settings
 - **Build Command**: `npm install`
 - **Start Command**: `npm start`
 - **Health Check Path**: `/api/health`
 
-### 4. 배포 완료
-배포가 완료되면 Render에서 제공하는 URL로 애플리케이션에 접근할 수 있습니다.
+### 4. Deployment Complete
+Once deployment is complete, you can access the application through the URL provided by Render.
 
-## 개발 정보
+## Development Information
 
-- **개발 모드**: `npm run dev`로 백엔드와 프론트엔드를 동시에 실행 (Gemini API 호출 없음)
-- **프로덕션 빌드**: `npm run build`로 클라이언트 빌드
-- **프로덕션 실행**: `NODE_ENV=production npm start`로 서버 실행 (실제 Gemini API 호출)
+- **Development Mode**: Run both backend and frontend with `npm run dev` (no Gemini API calls)
+- **Production Build**: Build client with `npm run build`
+- **Production Run**: Run server with `NODE_ENV=production npm start` (actual Gemini API calls)
 
-## 라이선스
+## License
 
 MIT License
 
-## 기여하기
+## Contributing
 
-1. 이 저장소를 포크합니다.
-2. 새로운 기능 브랜치를 생성합니다 (`git checkout -b feature/amazing-feature`)
-3. 변경사항을 커밋합니다 (`git commit -m 'Add some amazing feature'`)
-4. 브랜치에 푸시합니다 (`git push origin feature/amazing-feature`)
-5. Pull Request를 생성합니다.
+1. Fork this repository.
+2. Create a new feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Create a Pull Request.
 
-## 문제 해결
+## Troubleshooting
 
-### API 키 오류
-- `.env` 파일에 올바른 Gemini API 키가 설정되어 있는지 확인하세요.
-- API 키가 유효하고 활성화되어 있는지 확인하세요.
+### API Key Error
+- Check if the correct Gemini API key is set in the `.env` file.
+- Verify that the API key is valid and active.
 
-### CORS 오류
-- 백엔드 서버가 실행 중인지 확인하세요.
-- 프론트엔드와 백엔드의 포트가 올바른지 확인하세요.
+### CORS Error
+- Make sure the backend server is running.
+- Check if the frontend and backend ports are correct.
 
-### 빌드 오류
-- Node.js 버전이 18 이상인지 확인하세요.
-- `npm install`을 다시 실행해보세요.
+### Build Error
+- Ensure Node.js version is 18 or higher.
+- Try running `npm install` again.

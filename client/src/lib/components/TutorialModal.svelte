@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { translationsStore, languageStore } from '../stores/languageStore.js';
   
   const dispatch = createEventDispatcher();
   
@@ -58,13 +59,13 @@
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
           </svg>
-          새로운 기능 안내
+          {$translationsStore.tutorialModalTitle}
         </h2>
         <button 
           class="close-button"
           on:click={hide}
-          aria-label="모달 닫기"
-          title="닫기"
+          aria-label={$translationsStore.closeModal}
+          title={$translationsStore.closeModal}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -83,27 +84,27 @@
             </svg>
           </div>
           
-          <h3 class="tutorial-title">텍스트 선택으로 추가 질문하기</h3>
+          <h3 class="tutorial-title">{$translationsStore.tutorialTitle}</h3>
           
           <div class="tutorial-steps">
             <div class="step">
               <div class="step-number">1</div>
               <div class="step-content">
-                <p>AI 답변에서 <strong>궁금한 부분의 텍스트를 드래그</strong>하여 선택하세요</p>
+                <p>{$translationsStore.tutorialStep1}</p>
               </div>
             </div>
             
             <div class="step">
               <div class="step-number">2</div>
               <div class="step-content">
-                <p>선택된 텍스트에 대한 <strong>추가 질문을 입력</strong>하세요</p>
+                <p>{$translationsStore.tutorialStep2}</p>
               </div>
             </div>
             
             <div class="step">
               <div class="step-number">3</div>
               <div class="step-content">
-                <p>질문을 전송하면 <strong>새로운 노드가 생성</strong>되어 대화 트리에 추가됩니다</p>
+                <p>{$translationsStore.tutorialStep3}</p>
               </div>
             </div>
           </div>
@@ -116,7 +117,7 @@
               </svg>
             </div>
             <p class="tip-text">
-              <strong>팁:</strong> 모바일에서는 텍스트를 길게 누르고 드래그하여 선택할 수 있습니다.
+              <strong>{$translationsStore.tutorialTip}</strong> {$translationsStore.tutorialTipText}
             </p>
           </div>
         </div>
@@ -131,7 +132,7 @@
             <path d="M9 12l2 2 4-4"></path>
             <circle cx="12" cy="12" r="10"></circle>
           </svg>
-          알겠습니다
+          {$translationsStore.gotIt}
         </button>
       </div>
     </div>
@@ -284,10 +285,6 @@
     line-height: 1.5;
   }
   
-  .step-content strong {
-    color: #1f2937;
-    font-weight: 600;
-  }
   
   .tutorial-tip {
     display: flex;

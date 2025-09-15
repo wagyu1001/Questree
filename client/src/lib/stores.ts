@@ -124,8 +124,8 @@ export function calculateTreePositions() {
       const levelNodes = levelGroups[level];
       
       levelNodes.forEach((node, index) => {
-        const verticalSpacing = 100; // 같은 레벨 내 노드 간 수직 간격 (150 → 100)
-        const horizontalSpacing = 200; // 레벨 간 수평 간격 (300 → 200)
+        const verticalSpacing = 120; // 같은 레벨 내 노드 간 수직 간격 (더 큰 노드를 위해 증가)
+        const horizontalSpacing = 250; // 레벨 간 수평 간격 (더 큰 노드를 위해 증가)
         const startY = -((levelNodes.length - 1) * verticalSpacing) / 2;
         
         node.position = {

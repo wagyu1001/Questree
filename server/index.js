@@ -135,15 +135,41 @@ function detectLanguage(text) {
 // 언어별 프롬프트 생성 함수
 function generatePrompt(prompt, selectedText, images, language = 'ko') {
   const isImageQuery = images && images.length > 0;
-  const lengthLimit = language === 'en' ? 1000 : 700;
+  const lengthLimit = language === 'en' ? 1500 : 700;
 
   if (language === 'en') {
     if (selectedText) {
-      return `Please answer the following question about "${selectedText}" in a clear and helpful manner. Keep your response within ${lengthLimit} characters.\n\nQuestion: ${prompt}`;
+      return `Please provide a comprehensive and detailed answer to the following question about "${selectedText}". 
+
+Your response should:
+- Be thorough and informative
+- Include relevant examples or explanations
+- Provide context and background information when helpful
+- Be well-structured and easy to understand
+- Aim for approximately ${lengthLimit} characters
+
+Question: ${prompt}`;
     } else if (isImageQuery) {
-      return `Please analyze this image and provide a clear explanation. Keep your response within ${lengthLimit} characters.`;
+      return `Please analyze this image thoroughly and provide a detailed explanation. 
+
+Your response should:
+- Describe what you see in the image
+- Explain any relevant concepts or information
+- Provide context and background when helpful
+- Be comprehensive and informative
+- Aim for approximately ${lengthLimit} characters`;
     } else {
-      return `Please answer the following question in a clear and helpful manner. Keep your response within ${lengthLimit} characters.\n\nQuestion: ${prompt}`;
+      return `Please provide a comprehensive and detailed answer to the following question.
+
+Your response should:
+- Be thorough and informative
+- Include relevant examples or explanations
+- Provide context and background information when helpful
+- Be well-structured and easy to understand
+- Cover the topic in depth
+- Aim for approximately ${lengthLimit} characters
+
+Question: ${prompt}`;
     }
   } else {
     if (selectedText) {

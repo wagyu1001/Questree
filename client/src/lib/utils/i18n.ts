@@ -42,6 +42,17 @@ export interface Translations {
   serverError: string;
   validationError: string;
   
+  // 튜토리얼 모달
+  tutorialTitle: string;
+  tutorialModalTitle: string;
+  tutorialStep1: string;
+  tutorialStep2: string;
+  tutorialStep3: string;
+  tutorialTip: string;
+  tutorialTipText: string;
+  gotIt: string;
+  closeModal: string;
+  
   // 날짜 형식
   dateFormat: Intl.DateTimeFormatOptions;
 }
@@ -86,6 +97,17 @@ const translations: Record<Language, Translations> = {
     unknownError: '알 수 없는 오류가 발생했습니다.',
     serverError: '서버 오류가 발생했습니다.',
     validationError: '입력값이 올바르지 않습니다.',
+    
+    // 튜토리얼 모달
+    tutorialTitle: '텍스트 선택으로 추가 질문하기',
+    tutorialModalTitle: '새로운 기능 안내',
+    tutorialStep1: 'AI 답변에서 궁금한 부분의 텍스트를 드래그하여 선택하세요',
+    tutorialStep2: '선택된 텍스트에 대한 추가 질문을 입력하세요',
+    tutorialStep3: '질문을 전송하면 새로운 노드가 생성되어 대화 트리에 추가됩니다',
+    tutorialTip: '팁:',
+    tutorialTipText: '모바일에서는 텍스트를 길게 누르고 드래그하여 선택할 수 있습니다.',
+    gotIt: '알겠습니다',
+    closeModal: '모달 닫기',
     
     // 날짜 형식
     dateFormat: {
@@ -137,6 +159,17 @@ const translations: Record<Language, Translations> = {
     unknownError: 'An unknown error occurred.',
     serverError: 'Server error occurred.',
     validationError: 'Invalid input.',
+    
+    // 튜토리얼 모달
+    tutorialTitle: 'Ask Follow-up Questions by Selecting Text',
+    tutorialModalTitle: 'New Feature Guide',
+    tutorialStep1: 'Drag to select the text you\'re curious about from the AI answer',
+    tutorialStep2: 'Enter your follow-up question about the selected text',
+    tutorialStep3: 'Send the question and a new node will be created and added to the conversation tree',
+    tutorialTip: 'Tip:',
+    tutorialTipText: 'On mobile, you can long-press and drag to select text.',
+    gotIt: 'Got it',
+    closeModal: 'Close modal',
     
     // 날짜 형식
     dateFormat: {

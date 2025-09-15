@@ -216,9 +216,9 @@
   }
 
   function generatePath(from: TreeNode, to: TreeNode): string {
-    const startX = from.position.x + 25;
+    const startX = from.position.x + 30;
     const startY = from.position.y;
-    const endX = to.position.x - 25;
+    const endX = to.position.x - 30;
     const endY = to.position.y;
     return `M ${startX} ${startY} L ${endX} ${endY}`;
   }
@@ -341,7 +341,7 @@
             {/each}
             {#each nodes as node (node.id)}
               <g class="node-group" transform="translate({node.position.x}, {node.position.y})">
-                <circle r="20" class="node-circle" class:active={activeTabId === node.id}
+                <circle r="25" class="node-circle" class:active={activeTabId === node.id}
                   on:click={() => handleNodeClick(node.id)} 
                   on:keydown={(e) => e.key === 'Enter' && handleNodeClick(node.id)}
                   on:mousedown|preventDefault
@@ -351,7 +351,14 @@
                   tabindex="0"
                   aria-label="노드 {node.question} 클릭" />
                 <text x="0" y="6" text-anchor="middle" class="node-icon">{node.level === 0 ? '🏠' : '💬'}</text>
-                <text x="0" y="45" text-anchor="middle" class="node-title">{node.question}</text>
+                <text x="0" y="45" text-anchor="middle" class="node-title">
+                  {#each node.question.split(' ').slice(0, 3) as word, i}
+                    <tspan x="0" dy="{i * 8}">{word}</tspan>
+                  {/each}
+                  {#if node.question.split(' ').length > 3}
+                    <tspan x="0" dy="8">...</tspan>
+                  {/if}
+                </text>
               </g>
             {/each}
           </svg>
@@ -456,6 +463,7 @@
     transition: all 0.2s ease;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    r: 25;
   }
   .node-circle.active {
     fill: #3b82f6;
@@ -485,6 +493,10 @@
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    word-wrap: break-word;
+    max-width: 80px;
   }
   .connection-line {
     transition: all 0.2s ease;
